@@ -5,14 +5,12 @@ using UnityEngine;
 public class Zombie : Enemy
 {
 
-    protected override void Awake()
-    {
-        base.Awake();
-    }
+   
     
     // Start is called before the first frame update
-    public override void Start()
+    protected override void Start()
     {
+        base.Start();
         rb.gravityScale = 12f;
     }
 

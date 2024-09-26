@@ -18,15 +18,10 @@ public class Enemy : MonoBehaviour
     protected float recoilTimer;
     protected Rigidbody2D rb;
 
-    protected virtual void Awake()
+    protected virtual void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         player = PlayerController.Instance;
-    }
-
-    public virtual void Start()
-    {
-        
     }
 
     protected virtual void Update()
