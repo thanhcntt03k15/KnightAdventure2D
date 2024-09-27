@@ -126,6 +126,7 @@ public class PlayerController : MonoBehaviour
     //Input Variables
     private float xAxis, yAxis;
     private bool attack = false;
+    private bool canFlash = true;
 
 
     //creates a singleton of the PlayerController
@@ -161,6 +162,7 @@ public class PlayerController : MonoBehaviour
         Mana = mana;
         manaStorage.fillAmount = Mana;
         Health = maxHealth;
+        
     }
 
     private void OnDrawGizmos()
@@ -174,11 +176,13 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (pState.cutscene) return;
+
         GetInputs();
         UpdateJumpVariables();
+        RestoreTimeScale();
 
         if (pState.dashing) return;
-        RestoreTimeScale();
         FlashWhileInvincible();
         Move();
         Heal();
@@ -268,6 +272,28 @@ public class PlayerController : MonoBehaviour
         pState.dashing = false;
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
+    }
+
+    public IEnumerator WalkIntoNewScene(Vector2 _exitDir, float _delay)
+    {
+        pState.invincible = true;
+        // If exitdir is upwards
+        if (_exitDir.y > 0)
+        {
+            rb.velocity = jumpForce * _exitDir;
+        }
+
+        // If exit dir requires horizontal movement
+        if (_exitDir.x != 0)
+        {
+            xAxis = _exitDir.x > 0 ? 1 : -1;
+            Move();
+        }
+        Flip();
+
+        yield return new WaitForSeconds(_delay);
+        pState.invincible = false;
+        pState.cutscene = false;
     }
 
     void Attack()
@@ -406,8 +432,27 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(1f);
         pState.invincible = false;
     }
+
+    IEnumerator Flash()
+    {
+        sr.enabled = !sr.enabled;
+        canFlash = false;
+        yield return new WaitForSeconds(0.1f);
+        canFlash = true;
+    }
     void FlashWhileInvincible()
     {
+        if (pState.invincible && !pState.cutscene)
+        {
+            if (Time.timeScale > 0.2 && canFlash)
+            {
+                StartCoroutine(Flash());
+            }
+        }
+        else
+        {
+            sr.enabled = true;
+        }
         sr.material.color = pState.invincible ? Color.Lerp(Color.white, Color.black, Mathf.PingPong(Time.time * hitFlashSpeed, 1.0f)) : Color.white;
     }
     void RestoreTimeScale()
@@ -503,7 +548,7 @@ public class PlayerController : MonoBehaviour
 
     void CastSpell()
     {
-        if (Input.GetButtonUp("Cast/Heal") && castOrHealTime <= 0.05f  && timeSinceCast >= timeBetweenCast && Mana >= manaSpellCost)
+        if (Input.GetButtonUp("Cast/Heal") && castOrHealTime <= 0.1f  && timeSinceCast >= timeBetweenCast && Mana >= manaSpellCost)
         {
             pState.casting = true;
             timeSinceCast = 0;
@@ -512,6 +557,11 @@ public class PlayerController : MonoBehaviour
         else
         {
             timeSinceCast += Time.deltaTime;
+        }
+
+        if (!Input.GetButton("Cast/Heal"))
+        {
+            castOrHealTime = 0;
         }
 
         if(Grounded())
