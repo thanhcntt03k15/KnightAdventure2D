@@ -10,7 +10,6 @@ public class Enemy : MonoBehaviour
     [SerializeField] protected float recoilFactor;
     [SerializeField] protected bool isRecoiling = false;
 
-    [SerializeField] protected PlayerController player;
     [SerializeField] protected float speed;
 
     [SerializeField] protected float damage;
@@ -18,14 +17,24 @@ public class Enemy : MonoBehaviour
     protected float recoilTimer;
     protected Rigidbody2D rb;
 
+    protected enum EnemyStates
+    {
+        // Crawler
+        Crawler_Idle,
+        Crawler_Flip,
+    }
+
+    protected EnemyStates currentEnemyState;
+
     protected virtual void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        player = PlayerController.Instance;
     }
 
     protected virtual void Update()
     {
+        UpdateEnemyStates();
+        
         if (health <= 0)
         {
             Destroy(gameObject);
@@ -59,13 +68,18 @@ public class Enemy : MonoBehaviour
     {
         if (_other.gameObject.CompareTag("Player") && !PlayerController.Instance.pState.invincible)
         {
-            Debug.Log("takedamage");
+            Debug.Log("takedamage from : " + _other.gameObject.name);
             Attack();
             PlayerController.Instance.HitStopTime(0, 5, 0.5f );
         }
-        
     }
 
+    protected virtual void UpdateEnemyStates() { }
+
+    protected void ChangeState(EnemyStates _newState)
+    {
+        currentEnemyState = _newState;
+    }
     protected virtual void Attack()
     {
         PlayerController.Instance.TakeDamage(damage);
