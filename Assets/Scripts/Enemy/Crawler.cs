@@ -20,7 +20,12 @@ public class Crawler : Enemy
 
     protected override void UpdateEnemyStates()
     {
-        switch (currentEnemyState)
+        if (health <= 0)
+        {
+            Death(0.05f);
+        }
+        
+        switch (GetCurrentEnemyState)
         {
             case EnemyStates.Crawler_Idle:
                 
