@@ -12091,7 +12091,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1725186047}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 96.1, y: -1.678, z: 0}
+  m_LocalPosition: {x: 66.73, y: -1.68, z: 0}
   m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -12691,9 +12691,9 @@ GameObject:
   - component: {fileID: 1801628816}
   - component: {fileID: 1801628815}
   - component: {fileID: 1801628814}
-  - component: {fileID: 1801628813}
   - component: {fileID: 1801628812}
   - component: {fileID: 1801628811}
+  - component: {fileID: 1801628817}
   m_Layer: 6
   m_Name: Charge
   m_TagString: Enemy
@@ -12711,7 +12711,7 @@ Animator:
   m_GameObject: {fileID: 1801628810}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: bc20103893c79284e91ff4d493cb4dcc, type: 2}
+  m_Controller: {fileID: 9100000, guid: d57b44de348182c4c9da6963dd9ae394, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -12747,31 +12747,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 4.519495, y: 5.113076}
   m_EdgeRadius: 0
---- !u!114 &1801628813
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1801628810}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc6f9d81fb0968741b270213a58a1f3c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  health: 3
-  recoilLength: 0
-  recoilFactor: 0
-  isRecoiling: 0
-  speed: 5
-  damage: 1
-  orangeBlood: {fileID: 302784737}
-  flipWaitTime: 1
-  ledgeCheckX: 1.2
-  ledgeCheckY: 1
-  whatIsGround:
-    serializedVersion: 2
-    m_Bits: 8
 --- !u!50 &1801628814
 Rigidbody2D:
   serializedVersion: 4
@@ -12860,6 +12835,34 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 14
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1801628817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801628810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c93d780bf50e9441a67164c1221daef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  health: 10
+  recoilLength: 0.1
+  recoilFactor: 0.75
+  isRecoiling: 0
+  speed: 3
+  damage: 1
+  orangeBlood: {fileID: 5575345998930654482, guid: 651c8f7e156a6964f983063262004b7c, type: 3}
+  flipWaitTime: 0.5
+  ledgeCheckX: 1.2
+  ledgeCheckY: 1
+  ChargeSpeedMultiplier: 3
+  ChargeDuration: 3
+  jumpForce: 20
+  whatIsGround:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!1 &1802846906
 GameObject:
   m_ObjectHideFlags: 0

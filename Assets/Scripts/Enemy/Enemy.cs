@@ -32,6 +32,13 @@ public class Enemy : MonoBehaviour
         Bat_Chase,
         Bat_Stunned,
         Bat_Death,
+        
+        //Charger
+        Charger_Idle,
+        Charger_Suprised,
+        Charger_Charge,
+        Charger_Flip,
+        
     }
 
     protected EnemyStates currentEnemyState;
