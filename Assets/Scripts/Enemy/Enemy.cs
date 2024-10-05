@@ -38,7 +38,6 @@ public class Enemy : MonoBehaviour
         Charger_Suprised,
         Charger_Charge,
         Charger_Flip,
-        
     }
 
     protected EnemyStates currentEnemyState;

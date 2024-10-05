@@ -115,12 +115,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] GameObject sideSpellFireball;
     [SerializeField] GameObject upSpellExplosion;
     [SerializeField] GameObject downSpellFireball;
-    [Space(5)]
 
+    [Space(5)] [Header("Camera Stuff")] 
+    [SerializeField] private float playerFallSpeedThreshold = -10;
+    
 
     [HideInInspector] public PlayerStateList pState;
     private Animator anim;
-    private Rigidbody2D rb;
+    public Rigidbody2D rb;
     private SpriteRenderer sr;
 
     //Input Variables
@@ -180,6 +182,7 @@ public class PlayerController : MonoBehaviour
 
         GetInputs();
         UpdateJumpVariables();
+        UpdateCameraYDampForPlayerFall();
         RestoreTimeScale();
 
         if (pState.dashing) return;
@@ -242,6 +245,23 @@ public class PlayerController : MonoBehaviour
         if (pState.healing) rb.velocity = new Vector2(0, 0);
         rb.velocity = new Vector2(walkSpeed * xAxis, rb.velocity.y);
         anim.SetBool("Walking", rb.velocity.x != 0 && Grounded());
+    }
+
+    void UpdateCameraYDampForPlayerFall()
+    {
+        // if falling past a certain speed threshold
+        if (rb.velocity.y < playerFallSpeedThreshold && !CameraManager.Instance.isLerpingYDamping &&
+            !CameraManager.Instance.hasLerpedYDamping)
+        {
+            StartCoroutine(CameraManager.Instance.LerpYDamping(true));
+        }
+        // if standing or move up
+        if (rb.velocity.y >= 0 && !CameraManager.Instance.isLerpingYDamping && CameraManager.Instance.hasLerpedYDamping)
+        {
+            // reset camera function
+            CameraManager.Instance.hasLerpedYDamping = false;
+            StartCoroutine(CameraManager.Instance.LerpYDamping(false));
+        }
     }
 
     void StartDash()
@@ -632,33 +652,74 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // void Jump()
+    // {
+    //
+    //     if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && !pState.jumping)
+    //     {
+    //         rb.velocity = new Vector3(rb.velocity.x, jumpForce);
+    //
+    //         pState.jumping = true;
+    //     }
+    //     
+    //     if(!Grounded() && airJumpCounter < maxAirJumps && Input.GetButtonDown("Jump"))
+    //     {
+    //         pState.jumping = true;
+    //
+    //         airJumpCounter++;
+    //
+    //         rb.velocity = new Vector3(rb.velocity.x, jumpForce);
+    //     }
+    //
+    //     if (Input.GetButtonUp("Jump") && rb.velocity.y > 3)
+    //     {
+    //         rb.velocity = new Vector2(rb.velocity.x, 0);
+    //
+    //         pState.jumping = false;
+    //     }
+    //
+    //     anim.SetBool("Jumping", !Grounded());
+    // }
+    
+    // Biến thời gian chờ sau khi nhảy
+    public float jumpCooldown = 0.3f; // Thời gian chờ giữa các lần nhảy
+    private float lastJumpTime;
+    
     void Jump()
     {
-
-        if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && !pState.jumping)
+        // Kiểm tra nếu đã đủ thời gian chờ sau lần nhảy trước
+        if (Time.time >= lastJumpTime + jumpCooldown)
         {
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce);
+            if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && !pState.jumping)
+            {
+                rb.velocity = new Vector3(rb.velocity.x, jumpForce);
 
-            pState.jumping = true;
+                pState.jumping = true;
+                lastJumpTime = Time.time; // Cập nhật thời gian nhảy
+            }
+
+            // Kiểm tra nhảy giữa không trung
+            if (!Grounded() && airJumpCounter < maxAirJumps && Input.GetButtonDown("Jump"))
+            {
+                pState.jumping = true;
+
+                airJumpCounter++;
+
+                rb.velocity = new Vector3(rb.velocity.x, jumpForce);
+                lastJumpTime = Time.time; // Cập nhật thời gian nhảy
+            }
+
+            // Dừng nhảy khi nút nhảy được nhả ra
+            if (Input.GetButtonUp("Jump") && rb.velocity.y > 3)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, 0);
+
+                pState.jumping = false;
+            }
+
+            // Cập nhật trạng thái nhảy cho animation
+            anim.SetBool("Jumping", !Grounded());
         }
-        
-        if(!Grounded() && airJumpCounter < maxAirJumps && Input.GetButtonDown("Jump"))
-        {
-            pState.jumping = true;
-
-            airJumpCounter++;
-
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce);
-        }
-
-        if (Input.GetButtonUp("Jump") && rb.velocity.y > 3)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, 0);
-
-            pState.jumping = false;
-        }
-
-        anim.SetBool("Jumping", !Grounded());
     }
 
     void UpdateJumpVariables()
