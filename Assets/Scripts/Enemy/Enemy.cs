@@ -38,6 +38,12 @@ public class Enemy : MonoBehaviour
         Charger_Suprised,
         Charger_Charge,
         Charger_Flip,
+        
+        //Shader
+        Shader_Idle,
+        Shader_Chase,
+        Shader_Stunned,
+        Shader_Death,
     }
 
     protected EnemyStates currentEnemyState;
@@ -64,7 +70,7 @@ public class Enemy : MonoBehaviour
 
     protected virtual void Update()
     {
-        
+        if (GameManager.Instance.gameIsPaused) return;
 
         if (isRecoiling)
         {
@@ -101,7 +107,10 @@ public class Enemy : MonoBehaviour
         {
             Debug.Log("takedamage from : " + _other.gameObject.name);
             Attack();
-            PlayerController.Instance.HitStopTime(0, 5, 0.5f );
+            if (PlayerController.Instance.pState.alive)
+            {
+                PlayerController.Instance.HitStopTime(0, 5, 0.5f );
+            }
         }
     }
 

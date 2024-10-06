@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 public class SceneFader : MonoBehaviour
 {
-    [SerializeField] private float fadeTime;
+    [SerializeField] public float fadeTime;
 
     private Image fadeOutUIImage;
 
@@ -24,6 +24,11 @@ public class SceneFader : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void CallFadeAndLoadScene(string _sceneToLoad)
+    {
+        StartCoroutine(FadeAndLoadScene(FadeDirection.In, _sceneToLoad));
     }
 
     public IEnumerator Fade(FadeDirection _fadeDirection)

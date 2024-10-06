@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -101,6 +102,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float mana;
     [SerializeField] float manaDrainSpeed;
     [SerializeField] float manaGain;
+    private bool halfMana;
     [Space(5)]
 
     [Header("Spell Settings")]
@@ -118,17 +120,39 @@ public class PlayerController : MonoBehaviour
 
     [Space(5)] [Header("Camera Stuff")] 
     [SerializeField] private float playerFallSpeedThreshold = -10;
+
+    [Header("Audio Settings")] 
+    [SerializeField] private AudioClip LandingSound;
+
+    [SerializeField] private AudioClip jumpSound;
+    [SerializeField] private AudioClip DashAndAttackSound;
+    [SerializeField] private AudioClip spellCastSound;
+    [SerializeField] private AudioClip hurtSound;
     
 
     [HideInInspector] public PlayerStateList pState;
     private Animator anim;
     public Rigidbody2D rb;
     private SpriteRenderer sr;
+    private AudioSource _audioSource;
+    private bool landingSoundPlayed = false;
 
+    public bool openInventory;
+    public bool openMap;
+    
     //Input Variables
     private float xAxis, yAxis;
     private bool attack = false;
     private bool canFlash = true;
+
+    public bool unlockedUpCast = true;
+    public bool unlockedSideCast = true;
+    public bool unlockedDownCast = true;
+    public bool unlockedDash = true;
+    public bool unlockedvarJump = true;
+    public bool unlockedWallJump = true;
+    public int heartShards = 5;
+    public int manaShard = 1;
 
 
     //creates a singleton of the PlayerController
@@ -156,7 +180,7 @@ public class PlayerController : MonoBehaviour
 
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
-
+        _audioSource = GetComponent<AudioSource>();
         anim = GetComponent<Animator>();
 
         gravity = rb.gravityScale;
@@ -178,23 +202,32 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (pState.cutscene) return;
-
-        GetInputs();
+        if (pState.cutscene || GameManager.Instance.gameIsPaused) return;
+        if (pState.alive)
+        {
+            GetInputs();   
+            ToggleMap();
+            ToggleInventory();
+        }
+        
         UpdateJumpVariables();
         UpdateCameraYDampForPlayerFall();
         RestoreTimeScale();
-
-        if (pState.dashing) return;
-        FlashWhileInvincible();
-        Move();
-        Heal();
+        
         CastSpell();
-        if (pState.healing) return;
-        Flip();
-        Jump();
-        StartDash();
-        Attack();
+        if (pState.alive)
+        {
+            Move();
+            Heal();
+            Flip();
+            Jump();
+            StartDash();
+            Attack();
+        }
+        if (pState.healing || pState.dashing) return;
+        
+        FlashWhileInvincible();
+
     }
     private void OnTriggerEnter2D(Collider2D _other) //for up and down cast spell
     {
@@ -215,6 +248,8 @@ public class PlayerController : MonoBehaviour
         xAxis = Input.GetAxisRaw("Horizontal");
         yAxis = Input.GetAxisRaw("Vertical");
         attack = Input.GetButtonDown("Attack");
+        openMap = Input.GetButton("Map");
+        openInventory = Input.GetButton("Inventory");
 
         if (Input.GetButton("Cast/Heal"))
         {
@@ -223,6 +258,29 @@ public class PlayerController : MonoBehaviour
         else
         {
             castOrHealTime = 0;
+        }
+    }
+
+    void ToggleMap()
+    {
+        if (openMap)
+        {
+            UIManager.Instance.mapHandler.SetActive(true);
+        }
+        else
+        {
+            UIManager.Instance.mapHandler.SetActive(false);
+        }
+    }
+    void ToggleInventory()
+    {
+        if (openInventory)
+        {
+            UIManager.Instance.inventory.SetActive(true);
+        }
+        else
+        {
+            UIManager.Instance.inventory.SetActive(false);
         }
     }
 
@@ -283,6 +341,7 @@ public class PlayerController : MonoBehaviour
         canDash = false;
         pState.dashing = true;
         anim.SetTrigger("Dashing");
+        _audioSource.PlayOneShot(DashAndAttackSound);
         rb.gravityScale = 0;
         int dir = pState.lookingRight ? 1 : -1;
         rb.velocity = new Vector2(dir * dashSpeed, 0);
@@ -321,6 +380,7 @@ public class PlayerController : MonoBehaviour
         timeSinceAttack += Time.deltaTime;
         if (attack && timeSinceAttack >= timeBetweenAttack)
         {
+            _audioSource.PlayOneShot(DashAndAttackSound);
             timeSinceAttack = 0;
             anim.SetTrigger("Attacking");
 
@@ -441,8 +501,20 @@ public class PlayerController : MonoBehaviour
     }
     public void TakeDamage(float _damage)
     {
-        Health -= Mathf.RoundToInt(_damage);
-        StartCoroutine(StopTakingDamage());
+        if (pState.alive)
+        {
+            _audioSource.PlayOneShot(hurtSound);
+            Health -= Mathf.RoundToInt(_damage);
+            if (health <= 0)
+            {
+                health = 0;
+                StartCoroutine(Death());
+            }
+            else
+            {
+                StartCoroutine(StopTakingDamage());
+            }
+        }
     }
     IEnumerator StopTakingDamage()
     {
@@ -512,6 +584,46 @@ public class PlayerController : MonoBehaviour
         restoreTime = true;
     }
 
+    IEnumerator Death()
+    {
+        pState.alive = false;
+        Time.timeScale = 1.0f;
+        GameObject _bloodSpurtParticles = Instantiate(bloodSpurt, transform.position, Quaternion.identity);
+        Destroy(_bloodSpurtParticles, 1.5f);
+        anim.SetTrigger("Death");
+        BoxCollider2D col = GetComponent<BoxCollider2D>();
+        col.isTrigger = true;
+        rb.bodyType = RigidbodyType2D.Static;
+        yield return new WaitForSeconds(0.9f);
+
+        StartCoroutine(UIManager.Instance.DeathScreen());
+        Instantiate(GameManager.Instance.shade, transform.position, Quaternion.identity);
+
+    }
+
+    public void Respawned()
+    {
+        if (!pState.alive)
+        {
+            pState.alive = true;
+            pState.playerRespawnIdle();
+            halfMana = true;
+            UIManager.Instance.SwitchMana(UIManager.ManaState.HalfMana);
+            mana = 0; 
+            BoxCollider2D col = GetComponent<BoxCollider2D>();
+            col.isTrigger = false;
+            rb.bodyType = RigidbodyType2D.Dynamic;
+            Health = maxHealth;
+            anim.Play("Player_Idle");
+        }
+    }
+
+    public void RestoreMana()
+    {
+        halfMana = false;
+        UIManager.Instance.SwitchMana(UIManager.ManaState.FullMana);
+    }
+
     public int Health
     {
         get { return health; }
@@ -530,21 +642,31 @@ public class PlayerController : MonoBehaviour
     }
     void Heal()
     {
-        if (Input.GetButton("Cast/Heal") && castOrHealTime > 0.05f && Health < maxHealth && Mana > 0 && Grounded() && !pState.dashing)
+        // // Ensure mana does not drop below 0
+        // if (Mana <= 0)
+        // {
+        //     Mana = 0;
+        //     pState.healing = false;
+        //     anim.SetBool("Healing", false);
+        //     return;  // Exit early if no mana
+        // }
+
+        if (Input.GetButton("Cast/Heal") && castOrHealTime > 0.1f && Health < maxHealth && Mana > 0 && Grounded() && !pState.dashing)
         {
             pState.healing = true;
             anim.SetBool("Healing", true);
 
             //healing
             healTimer += Time.deltaTime;
+            //drain mana
+            Mana -= Time.deltaTime * manaDrainSpeed;
             if (healTimer >= timeToHeal)
             {
                 Health++;
                 healTimer = 0;
             }
 
-            //drain mana
-            Mana -= Time.deltaTime * manaDrainSpeed;
+            
         }
         else
         {
@@ -561,6 +683,14 @@ public class PlayerController : MonoBehaviour
             //if mana stats change
             if (mana != value)
             {
+                if (!halfMana)
+                {
+                    mana = math.clamp(value, 0, 1);
+                }
+                else
+                {
+                    mana = Mathf.Clamp(value, 0, 0.5f);
+                }
                 mana = Mathf.Clamp(value, 0, 1);
                 manaStorage.fillAmount = Mana;
             }
@@ -569,7 +699,7 @@ public class PlayerController : MonoBehaviour
 
     void CastSpell()
     {
-        if (Input.GetButtonUp("Cast/Heal") && castOrHealTime <= 0.1f  && timeSinceCast >= timeBetweenCast && Mana >= manaSpellCost)
+        if (Input.GetButtonUp("Cast/Heal") && castOrHealTime <= 0.1f  && timeSinceCast >= timeBetweenCast && Mana >= manaSpellCost && !pState.healing)
         {
             pState.casting = true;
             timeSinceCast = 0;
@@ -580,10 +710,10 @@ public class PlayerController : MonoBehaviour
             timeSinceCast += Time.deltaTime;
         }
 
-        if (!Input.GetButton("Cast/Heal"))
-        {
-            castOrHealTime = 0;
-        }
+        // if (!Input.GetButton("Cast/Heal"))
+        // {
+        //     castOrHealTime = 0;
+        // }
 
         if(Grounded())
         {
@@ -598,6 +728,7 @@ public class PlayerController : MonoBehaviour
     }
     IEnumerator CastCoroutine()
     {
+        _audioSource.PlayOneShot(spellCastSound);
         anim.SetBool("Casting", true);
         yield return new WaitForSeconds(0.15f);
 
@@ -692,6 +823,7 @@ public class PlayerController : MonoBehaviour
         {
             if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && !pState.jumping)
             {
+                _audioSource.PlayOneShot(jumpSound);
                 rb.velocity = new Vector3(rb.velocity.x, jumpForce);
 
                 pState.jumping = true;
@@ -701,6 +833,7 @@ public class PlayerController : MonoBehaviour
             // Kiểm tra nhảy giữa không trung
             if (!Grounded() && airJumpCounter < maxAirJumps && Input.GetButtonDown("Jump"))
             {
+                _audioSource.PlayOneShot(jumpSound);
                 pState.jumping = true;
 
                 airJumpCounter++;
@@ -726,6 +859,12 @@ public class PlayerController : MonoBehaviour
     {
         if (Grounded())
         {
+            if (!landingSoundPlayed)
+            {
+                Debug.Log(LandingSound.name);
+                _audioSource.PlayOneShot(LandingSound);
+                landingSoundPlayed = true;
+            }
             pState.jumping = false;
             coyoteTimeCounter = coyoteTime;
             airJumpCounter = 0;
@@ -733,6 +872,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             coyoteTimeCounter -= Time.deltaTime;
+            landingSoundPlayed = false;
         }
 
         if (Input.GetButtonDown("Jump"))

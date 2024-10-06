@@ -143,7 +143,7 @@ MonoBehaviour:
   isRecoiling: 0
   speed: 12
   damage: 1
-  orangeBlood: {fileID: 0}
+  orangeBlood: {fileID: 5575345998930654482, guid: 651c8f7e156a6964f983063262004b7c, type: 3}
   chaseDistance: 15
   stunDuration: 5
 --- !u!95 &6376054383422887487

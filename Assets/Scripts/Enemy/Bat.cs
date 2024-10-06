@@ -13,13 +13,31 @@ public class Bat : Enemy
         base.Start();
         ChangeState(EnemyStates.Bat_Idle);
     }
+    
+    protected override void Update()
+    {
+        base.Update();
+        if (!PlayerController.Instance.pState.alive)
+        {
+            ChangeState(EnemyStates.Bat_Idle);
+        }
+    }
 
+    private void OnCollisionEnter2D(Collision2D _other)
+    {
+        if (_other.gameObject.CompareTag("Enemy"))
+        {
+            ChangeState(EnemyStates.Crawler_Flip);
+        }
+    }
+    
     protected override void UpdateEnemyStates()
     {
         float _dist = Vector2.Distance(transform.position, PlayerController.Instance.transform.position);
         switch (GetCurrentEnemyState)
         {
             case EnemyStates.Bat_Idle:
+                rb.velocity = new Vector2(0, 0);
                 if (_dist < chaseDistance)
                 {
                     ChangeState(EnemyStates.Bat_Chase);
@@ -29,6 +47,11 @@ public class Bat : Enemy
             case EnemyStates.Bat_Chase:
                 rb.MovePosition(Vector2.MoveTowards(transform.position, PlayerController.Instance.transform.position, Time.deltaTime * speed));
                 FlipBat();
+
+                if (_dist < chaseDistance)
+                {
+                    ChangeState(EnemyStates.Bat_Idle);
+                }
                 break;
             
             case EnemyStates.Bat_Stunned:

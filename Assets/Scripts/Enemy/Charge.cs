@@ -21,7 +21,24 @@ public class Charge : Enemy
         ChangeState(EnemyStates.Charger_Idle);
         rb.gravityScale = 12f;
     }
+    
+    protected override void Update()
+    {
+        base.Update();
+        if (!PlayerController.Instance.pState.alive)
+        {
+            ChangeState(EnemyStates.Charger_Idle);
+        }
+    }
 
+    private void OnCollisionEnter2D(Collision2D _other)
+    {
+        if (_other.gameObject.CompareTag("Enemy"))
+        {
+            ChangeState(EnemyStates.Charger_Flip);
+        }
+    }
+    
     protected override void UpdateEnemyStates()
     {
         base.UpdateEnemyStates();
